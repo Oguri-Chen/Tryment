@@ -34,7 +34,7 @@
   "build": {
     "appId": "com.xiaochen.tryment",
     "productName": "tryment",
-    "copyright": "Copyright © 打工人小陈 2022",
+    "copyright": "Copyright © xiaochen 2022",
     "files": [
       "dist/**/*",
       "electron/**/*",
@@ -55,9 +55,20 @@
       "buildResources": "assets",
       "output": "dist_electron"
     },
+    "mac": {
+      "icon": "icon.png",
+      "artifactName": "${productName}_${version}.${ext}",
+      "target": [
+        "dmg"
+      ]
+    },
     "win": {
-      "target": "nsis",
-      "icon": "icon.png"
+      "icon": "icon.png",
+      "artifactName": "${productName}_${version}.${ext}",
+      "target": [
+        "nsis",
+        "zip"
+      ]
     },
     "nsis": {
       "oneClick": false,
