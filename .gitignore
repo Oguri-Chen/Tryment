@@ -9,7 +9,7 @@ lerna-debug.log*
 
 node_modules
 dist
-dist-electron
+dist_electron
 dist-ssr
 note.db
 *.local
