@@ -1,10 +1,8 @@
 <script setup>
 import { reactive, onMounted, onUnmounted, ref } from 'vue';
-import { getNote, saveNote } from '../api/index';
 import Vditor from 'vditor';
 import 'vditor/dist/index.css';
-
-// const ipcRenderer = window.electron.ipcRenderer;
+const ipcRenderer = window.electron.ipcRenderer;
 
 const props = defineProps(['noteId']);
 const emit = defineEmits(['getNoteList', 'addNote']);
@@ -19,8 +17,8 @@ const noteEditor = reactive({
 const vditor = ref();
 
 const GetNoteInfo = async () => {
-  const res = await getNote(props.noteId);
-  if (res) noteEditor.data = res.data;
+  const res = await ipcRenderer.sendSync('getNote', props.noteId.id)
+  if (res) noteEditor.data = res
 
 };
 const SaveNote = async (id) => {
@@ -29,9 +27,19 @@ const SaveNote = async (id) => {
     title: noteEditor.data.title,
     content: vditor.value.getValue(),
   };
-  const res = await saveNote(data);
+  const res = await ipcRenderer.sendSync('updateNote', data)
   emit('getNoteList');
 };
+//文件转base64
+const FileToBase64Url = (fileRaw) => {
+  return new Promise((resolve) => {
+    const reader = new FileReader()
+    reader.readAsDataURL(fileRaw)
+    reader.onload = () => {
+      resolve(reader.result)
+    }
+  })
+}
 
 //输出pdf，已换成自带导出
 // const outputPDF = (html) => { ipcRenderer.send('outputPDF', html.toString()) }
@@ -39,7 +47,6 @@ const SaveNote = async (id) => {
 const initEditor = async () => {
   vditor.value = new Vditor('vditor', {
     height: '100%',
-    theme: 'dark',
     placeholder: '快来写写吧~',
     toolbar: [
       'headings',
@@ -103,26 +110,28 @@ const initEditor = async () => {
       vditor.value.setValue(noteEditor.data.content);
     },
     upload: {
-      accept: 'image/jpg, image/jpeg, image/png, image/gif',
-      url: `http://localhost:${window.port}/note/upload`,
-      multiple: true,
-      fieldName: 'file',
-      linkToImgUrl: `http://localhost:${window.port}/note/upload`,
-      success: (editor, result) => {
-        const res = JSON.parse(result).data;
+      url: '/1',
+      linkToImgUrl: `/1`,
+      accept: 'image/*',
+      multiple: false,
+      async handler(files) {
+        const base64 = await FileToBase64Url(files[0])
+        const base64Info = base64.split(',')
+        const data = {
+          imgName: files[0].name,
+          imgBuffer: Buffer.from(base64Info[1], 'base64')
+        }
+        const res = await ipcRenderer.sendSync('upload', data)
         let text = '';
         if (vditor.value && vditor.value.getCurrentMode() === 'wysiwyg') {
           text += `\n <img alt=${res} src="${res}">`;
         } else {
-          text += `\n![${res.split('/')[1]}](${res})`;
+          text += `\n![${files[0].name.split('.')[0]}](${res})`;
         }
         document.execCommand('insertHTML', false, text);
         SaveNote(props.noteId.id);
-      },
-      error: (msg) => {
-        console.log(msg);
-      },
-    },
+      }
+    }
   });
 };
 

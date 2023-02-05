@@ -9,7 +9,8 @@ import {
   computed,
 } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import { getList } from '../api/index';
+
+const ipcRenderer = window.electron.ipcRenderer;
 
 const router = useRouter();
 const route = useRoute();
@@ -59,8 +60,8 @@ const debounce = (fn, time) => {
 };
 
 const GetList = async () => {
-  const res = await getList(files.search);
-  if (res) files.list = res.data;
+  const res = await ipcRenderer.sendSync('getNoteList', files.search)
+  if (res) files.list = res
   initPositions();
   updateHeight();
 };

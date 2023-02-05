@@ -1,9 +1,10 @@
 <script setup>
 import { reactive, watch, nextTick, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { createNote, delNote } from '../api/index';
 import FileList from '../components/FileList.vue';
 import Editor from '../components/Editor.vue';
+
+const ipcRenderer = window.electron.ipcRenderer;
 
 const router = useRouter();
 
@@ -18,19 +19,16 @@ const fileListRef = ref();
 const editorRef = ref();
 
 const addNote = async () => {
-  const res = await createNote();
-  if (res) {
-    const id = res.data.lastInsertRowid;
-    router.push('?id=' + id);
-  }
+  const res = await ipcRenderer.sendSync('createNote')
+  if (res) router.push('?id=' + res.lastInsertRowid);
   getNoteList();
-};
+}
 const saveNote = async (id) => {
   editorRef.value.SaveNote(id);
 };
 const removeNote = async (id) => {
   if (editor.id.id == id) editor.state = false;
-  const res = await delNote(id);
+  const res = await ipcRenderer.send('deleteNote', id)
   await getNoteList();
 };
 const getNoteList = async () => {
@@ -49,11 +47,8 @@ const splitLineMouseMove = (e) => {
   const minLocX = 300;
   const maxLocX = document.body.clientWidth * 0.5;
   let listWidth = e.clientX;
-  if (listWidth < minLocX) {
-    listWidth = minLocX;
-  } else if (listWidth > maxLocX) {
-    listWidth = maxLocX;
-  }
+  if (listWidth < minLocX) listWidth = minLocX;
+  else if (listWidth > maxLocX) listWidth = maxLocX;
   layout.listWidth = listWidth.toString() + 'px';
 };
 
@@ -112,16 +107,24 @@ watch(
   cursor: col-resize;
 }
 
+.splitLine:hover {
+  transform: scaleX(3);
+}
+
 .editor {
   flex: 1;
   height: 100%;
 }
 
 .editorEmpty {
-  width: 100%;
   height: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+.editorEmpty img {
+  user-select: none;
+  -webkit-user-drag: none
 }
 </style>
