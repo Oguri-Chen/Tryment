@@ -2,9 +2,7 @@
 import { ref } from 'vue';
 const isLight = ref(false);
 
-if (!localStorage.getItem('isLight')) {
-  localStorage.setItem('isLight', isLight.value);
-} else {
+if (localStorage.getItem('isLight')) {
   isLight.value = localStorage.getItem('isLight') == 'true';
   document.documentElement.setAttribute(
     'theme',
