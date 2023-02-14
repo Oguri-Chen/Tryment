@@ -9,6 +9,7 @@ import {
   computed,
 } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
+import Preview from './Preview.vue';
 
 const ipcRenderer = window.electron.ipcRenderer;
 
@@ -26,6 +27,8 @@ const screenHeight = ref(0);
 const start = ref(0);
 const end = ref(0);
 const estimatedItemSize = ref(105);
+const previewId = ref(null)
+const previewTop = ref(null)
 let positions = reactive([
   {
     top: 0,
@@ -44,18 +47,15 @@ const menus = reactive({
   list: [],
 });
 
-const debounce = (fn, time) => {
+const debounce = (fn, delay) => {
   let timer;
   return function (...argu) {
     if (timer) {
       clearTimeout(timer);
-      timer = null;
     }
     timer = setTimeout(() => {
-      fn(...argu);
-      clearTimeout(timer);
-      timer = null;
-    }, time);
+      fn.apply(this, argu)
+    }, delay);
   };
 };
 
@@ -73,6 +73,21 @@ const itemClick = (e) => {
   const id = e.currentTarget.dataset.id || '';
   router.push('?id=' + id);
 };
+//item移入预览
+const itemMouseEnter = (e) => {
+  previewTop.value = e.clientY >= window.innerHeight - 240
+    ? window.innerHeight - 280
+    : e.clientY - e.offsetY - 80
+  previewId.value = e.currentTarget.dataset.id
+}
+//item移出预览
+const itemMouseLeave = (e) => {
+  previewId.value = null
+}
+//导入
+const importNotes = (element) => {
+  console.log(element.value);
+}
 //右键菜单设置
 const MenuRightClick = (e) => {
   menus.state = false;
@@ -81,7 +96,7 @@ const MenuRightClick = (e) => {
   const noteType = e.currentTarget.dataset.type;
   const noteId = e.currentTarget.dataset.id || '';
 
-  let menu = [
+  const menu = [
     {
       label: '新建笔记',
       icon: 'new_menu.svg',
@@ -99,6 +114,19 @@ const MenuRightClick = (e) => {
       allow: ['fileItem', 'id'],
       click: () => {
         emit('saveNote', noteId);
+      },
+    },
+    {
+      label: '导入',
+      icon: 'import_menu.svg',
+      tip: '',
+      allow: ['fileItem', 'fileList'],
+      click: async () => {
+        const res = await ipcRenderer.sendSync('importNote')
+        if (res) {
+          GetList();
+          router.push('?id=' + res.lastInsertRowid)
+        };
       },
     },
     {
@@ -127,15 +155,6 @@ const MenuRightClick = (e) => {
       },
     },
     {
-      label: '清空搜索',
-      icon: 'clean_menu.svg',
-      allow: ['fileItem', 'fileList'],
-      click: () => {
-        files.search = '';
-        GetList();
-      },
-    },
-    {
       label: '刷新',
       icon: 'refresh_menu.svg',
       tip: 'Ctrl + R',
@@ -157,6 +176,11 @@ const MenuRightClick = (e) => {
   e.preventDefault();
   e.stopPropagation();
 };
+
+const clearInput = () => {
+  files.search = '';
+  GetList();
+}
 
 //展示数量
 const visibleCount = computed(() => {
@@ -264,8 +288,12 @@ onUpdated(() => {
 
 <template>
   <div class="fileListArea">
+    <transition name="pre">
+      <Preview class="previewBox" v-show="previewId" :previewId="previewId" :style="{ top: previewTop + 'px' }" />
+    </transition>
     <div class="searchBox">
       <input type="text" v-model="files.search" placeholder="搜索笔记" @input="searchList" />
+      <img src="/icon/close_input.svg" alt="" v-show="files.search" @click="clearInput">
     </div>
     <div ref="list" class="itemList" data-type="fileList" :style="{ height }" @scroll="scrollEvent"
       @contextmenu="MenuRightClick">
@@ -276,8 +304,8 @@ onUpdated(() => {
       <div ref="content" class="itemCard-content">
         <div ref="items" class="itemCard" v-for="item in visibleData" :data-id="item.id" data-type="fileItem"
           @contextmenu="MenuRightClick" :key="item.id">
-          <div class="item" :class="item.id == files.current ? 'item_active' : ''" :data-id="item.id"
-            @click="itemClick">
+          <div class="item" :class="item.id == files.current ? 'item_active' : ''" :data-id="item.id" @click="itemClick"
+            @mouseenter="itemMouseEnter" @mouseleave="itemMouseLeave">
             <div class="itemTitle">
               <img src="/icon/markdown.svg" class="itemTitleIcon" />
               <span>{{ item.title }}</span>
@@ -298,17 +326,34 @@ onUpdated(() => {
 
 <style scoped>
 .fileListArea {
+  position: relative;
   display: flex;
   flex-flow: column;
   width: 100%;
   height: 100%;
   padding-bottom: 15px;
-  transition: all 0.3s;
+  transition: background 0.3s;
   background: var(--fileList-color);
 }
 
+.pre-leave-to {
+  opacity: 0;
+}
+
+.pre-leave-active {
+  transition: opacity .2s;
+}
+
+.previewBox {
+  z-index: 10;
+  position: absolute;
+  right: -240px;
+  transition: all .15s ease-in;
+}
+
 .searchBox {
-  padding: 10px 20px;
+  position: relative;
+  padding: 10px 40px;
   margin: 14px 10px;
   border-radius: 12px;
   transition: all 0.3s;
@@ -316,13 +361,19 @@ onUpdated(() => {
 }
 
 .searchBox input {
+  height: 24px;
   width: 100%;
-  font-size: 14px;
+  font-size: 15px;
   text-align: center;
   background: unset;
   border: unset;
   transition: all 0.3s;
   color: var(--primary-font-color);
+}
+
+.searchBox img {
+  position: absolute;
+  right: 10px;
 }
 
 .searchBox input:focus-visible {
@@ -371,10 +422,9 @@ onUpdated(() => {
 }
 
 .item {
-  --padding: 16px;
-  transition: all 0.3s;
-  padding: var(--padding);
-  width: calc(100% - var(--padding) * 2);
+  transition: background 0.3s, box-shadow 0.3s;
+  padding: 16px;
+  width: calc(100% - 32px);
   background: var(--fileItem-color);
   border-radius: 12px;
   overflow: hidden;
@@ -382,7 +432,6 @@ onUpdated(() => {
 }
 
 .item_active {
-  transition: all 0.3s;
   background: var(--fileItem-active-color);
 }
 
@@ -395,7 +444,7 @@ onUpdated(() => {
 }
 
 .itemTitle {
-  font-weight: 900;
+  font-weight: bold;
 }
 
 .itemContent {

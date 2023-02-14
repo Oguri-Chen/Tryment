@@ -1,6 +1,6 @@
 const Database = require("better-sqlite3")
 const filePath = './note.db'
-const db = new Database(filePath, { verbose: console.log })
+const db = new Database(filePath)
 
 createTable = () => {
     const createTableSQL = `

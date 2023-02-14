@@ -58,14 +58,8 @@ npm run electron:build
 
 # ♨️后记
 
-> Q：小伙子你说对着抄，有自己写的吗
 
-A：可以说就 copy 了样式设计，后在基础功能上加了点小东西，比如字数统计、虚拟列表、主题切换、过度动画等，并修复了几个操作 bug，可以打十分甚至九分！
-
-
-
-
-> 搞这玩意真的很多坑
+> ## 搞这玩意真的很多坑
 
 - better-sqlite3 编译报错：真的坑啊这东西，掘金、github 到处找解决方法，最后是去的 [Stack Overflow](https://stackoverflow.com/questions/73752141/cannot-install-better-sqlite3-with-build-from-source-because-electron-abi-mismat) 找到了用 `node-gyp` 的方法完成了编译
 
@@ -81,3 +75,16 @@ A：可以说就 copy 了样式设计，后在基础功能上加了点小东西�
 
 - 打包后文件过大：打包后算免安装包文件夹大概到 300 多 mb 了，实在是不敢恭维，看 `app.asar` 里打包了整个 `node_modules`，后通过修改 `electron-builder` 配置优化到了 230 多 mb
 
+  
+
+> ## 零碎的更新
+
+- [x] 图片本地转存
+- [x] 双色主题
+- [x] 虚拟列表优化
+- [x] 移除 `WebServer` 相关
+- [x] 内容预览
+- [x] 文件导入
+- [ ] 引导界面
+- [ ] todo任务状态（可能）
+- [ ] 想不出了

@@ -16,22 +16,37 @@ const noteEditor = reactive({
 });
 const vditor = ref();
 
+const debounce = (fn, delay) => {
+  let timer;
+  return function (...argu) {
+    if (timer) {
+      clearTimeout(timer);
+    }
+    timer = setTimeout(() => {
+      fn.apply(this, argu)
+    }, delay);
+  };
+};
+
 const GetNoteInfo = async () => {
   const res = await ipcRenderer.sendSync('getNote', props.noteId.id)
   if (res) noteEditor.data = res
 
 };
-const SaveNote = async (id) => {
+
+const SaveNote = async () => {
   const data = {
-    id,
+    id: props.noteId.id,
     title: noteEditor.data.title,
     content: vditor.value.getValue(),
   };
   const res = await ipcRenderer.sendSync('updateNote', data)
   emit('getNoteList');
 };
-//文件转base64
-const FileToBase64Url = (fileRaw) => {
+
+const titleSave = debounce(SaveNote, 500)
+
+const FileToBase64Url = async (fileRaw) => {
   return new Promise((resolve) => {
     const reader = new FileReader()
     reader.readAsDataURL(fileRaw)
@@ -94,7 +109,7 @@ const initEditor = async () => {
         tip: '保存笔记',
         className: 'saveNote',
         click() {
-          SaveNote(props.noteId.id);
+          SaveNote();
           // const html = document.getElementsByClassName('vditor-ir')[0]
           // outputPDF(html.innerHTML)
         },
@@ -111,7 +126,7 @@ const initEditor = async () => {
     },
     upload: {
       url: '/1',
-      linkToImgUrl: `/1`,
+      linkToImgUrl: '/1',
       accept: 'image/*',
       multiple: false,
       async handler(files) {
@@ -129,7 +144,7 @@ const initEditor = async () => {
           text += `\n![${files[0].name.split('.')[0]}](${res})`;
         }
         document.execCommand('insertHTML', false, text);
-        SaveNote(props.noteId.id);
+        SaveNote();
       }
     }
   });
@@ -152,7 +167,7 @@ onUnmounted(() => {
 <template>
   <div class="editor">
     <div class="title">
-      <input v-model="noteEditor.data.title" @input="SaveNote(props.noteId.id)" />
+      <input v-model="noteEditor.data.title" @input="titleSave" />
     </div>
     <div class="noteEditor">
       <div id="vditor"></div>
@@ -173,7 +188,7 @@ onUnmounted(() => {
 
 .noteEditor {
   flex: 1;
-  height: calc(100% - 48px - 10px - 30px);
+  height: calc(100% - 88px);
 }
 
 .title {

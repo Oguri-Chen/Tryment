@@ -2,7 +2,7 @@ const path = require('path');
 const fs = require('fs')
 const db = require('./db')
 const moment = require('moment')
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 
 const isDev = !app.isPackaged
 const additionalData = { key: 'tryment' }
@@ -43,7 +43,7 @@ function createWindow() {
         win.close();
     });
     ipcMain.on('createNote', (e, arg) => {
-        const updateDateTime = moment(new Date()).format('YYYY-MM-DD hh:mm:ss')
+        const updateDateTime = moment(new Date()).utcOffset(8).format('YYYY-MM-DD hh:mm:ss')
         const createNote = db.prepare("INSERT INTO T_NOTE(title, content, updateDateTime) VALUES(?, ?, ?)")
         const res = createNote.run("无标题笔记", "", updateDateTime)
         e.returnValue = res
@@ -60,7 +60,7 @@ function createWindow() {
     })
     ipcMain.on('updateNote', (e, arg) => {
         const { id, title, content } = arg
-        const updateDateTime = moment(new Date()).format('YYYY-MM-DD hh:mm:ss')
+        const updateDateTime = moment(new Date()).utcOffset(8).format('YYYY-MM-DD hh:mm:ss')
         const updateNote = db.prepare("update T_NOTE set title=?, content=?, updateDateTime=? where id=?")
         const res = updateNote.run(title, content, updateDateTime, id)
         e.returnValue = res
@@ -70,9 +70,21 @@ function createWindow() {
         const res = delNote.run(arg)
         e.returnValue = res
     })
+    ipcMain.on('importNote', async (e, arg) => {
+        const res = await dialog.showOpenDialog({})
+        fs.readFile(res.filePaths[0], { flag: 'r', encoding: 'utf-8' }, (err, data) => {
+            if (err !== null) console.log(err)
+            else {
+                const updateDateTime = moment(new Date()).utcOffset(8).format('YYYY-MM-DD hh:mm:ss')
+                const createNote = db.prepare("INSERT INTO T_NOTE(title, content, updateDateTime) VALUES(?, ?, ?)")
+                const res = createNote.run("导入笔记", data, updateDateTime)
+                e.returnValue = res
+            }
+        })
+    })
     ipcMain.on('upload', (e, arg) => {
         const { imgBuffer, imgName } = arg
-        const dirName = moment(new Date()).format('YYYYMMDD')
+        const dirName = moment(new Date()).utcOffset(8).format('YYYYMMDD')
         const dir = path.join(process.cwd(), `./uploads/${dirName}`)
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true }, () => { })
         const filePath = path.join(dir, imgName)

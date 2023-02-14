@@ -1,5 +1,7 @@
 <script setup>
 import { ref } from 'vue';
+const ipcRenderer = window.electron.ipcRenderer;
+
 const isLight = ref(false);
 
 if (localStorage.getItem('isLight')) {
@@ -9,7 +11,7 @@ if (localStorage.getItem('isLight')) {
     isLight.value ? 'light' : ''
   );
 }
-const ipcRenderer = window.electron.ipcRenderer;
+
 const btnThemeChange = () => {
   isLight.value = !isLight.value;
   document.documentElement.setAttribute(
