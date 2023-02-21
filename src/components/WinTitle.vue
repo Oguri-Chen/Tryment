@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue';
-const ipcRenderer = window.electron.ipcRenderer;
+const { ipcRenderer } = window.electron;
 
 const isLight = ref(false);
 

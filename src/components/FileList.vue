@@ -10,8 +10,7 @@ import {
 } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import Preview from './Preview.vue';
-
-const ipcRenderer = window.electron.ipcRenderer;
+const { ipcRenderer } = window.electron;
 
 const router = useRouter();
 const route = useRoute();
@@ -84,10 +83,7 @@ const itemMouseEnter = (e) => {
 const itemMouseLeave = (e) => {
   previewId.value = null
 }
-//导入
-const importNotes = (element) => {
-  console.log(element.value);
-}
+
 //右键菜单设置
 const MenuRightClick = (e) => {
   menus.state = false;

@@ -1,7 +1,8 @@
 {
   "name": "tryment",
   "private": true,
-  "version": "1.0.2",
+  "version": "1.0.3",
+  "author": "Oguri-Chen",
   "main": "electron/main.js",
   "scripts": {
     "dev": "vite",

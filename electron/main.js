@@ -1,7 +1,3 @@
-const path = require('path');
-const fs = require('fs')
-const db = require('./db')
-const moment = require('moment')
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 
 const isDev = !app.isPackaged
@@ -11,6 +7,8 @@ const gotTheLock = app.requestSingleInstanceLock(additionalData)
 let win = null
 
 function createWindow() {
+    const path = require('path');
+
     win = new BrowserWindow({
         width: 1200,
         height: 800,
@@ -30,6 +28,10 @@ function createWindow() {
             ? 'http://localhost:5173'
             : `file://${path.join(__dirname, '../dist/index.html')}`
     );
+
+    const fs = require('fs')
+    const db = require('./db')
+    const moment = require('moment')
 
     isDev && win.webContents.openDevTools();
 
@@ -71,16 +73,24 @@ function createWindow() {
         e.returnValue = res
     })
     ipcMain.on('importNote', async (e, arg) => {
-        const res = await dialog.showOpenDialog({})
-        fs.readFile(res.filePaths[0], { flag: 'r', encoding: 'utf-8' }, (err, data) => {
-            if (err !== null) console.log(err)
-            else {
-                const updateDateTime = moment(new Date()).utcOffset(8).format('YYYY-MM-DD hh:mm:ss')
-                const createNote = db.prepare("INSERT INTO T_NOTE(title, content, updateDateTime) VALUES(?, ?, ?)")
-                const res = createNote.run("导入笔记", data, updateDateTime)
-                e.returnValue = res
-            }
+        const res = await dialog.showOpenDialog({
+            filters: [
+                { name: 'Text Files', extensions: ['txt'] },
+                { name: 'Markdown Files', extensions: ['md'] },
+                { name: 'JSON Files', extensions: ['json'] },
+                { name: 'HTML Files', extensions: ['html'] }
+            ]
         })
+        if (res.filePaths.length > 0) {
+            fs.readFile(res.filePaths[0], { flag: 'r', encoding: 'utf-8' }, (err, data) => {
+                if (err === null) {
+                    const updateDateTime = moment(new Date()).utcOffset(8).format('YYYY-MM-DD hh:mm:ss')
+                    const createNote = db.prepare("INSERT INTO T_NOTE(title, content, updateDateTime) VALUES(?, ?, ?)")
+                    const res = createNote.run("导入笔记", data, updateDateTime)
+                    e.returnValue = res
+                } else e.returnValue = false
+            })
+        } else e.returnValue = false
     })
     ipcMain.on('upload', (e, arg) => {
         const { imgBuffer, imgName } = arg
@@ -121,9 +131,8 @@ function createWindow() {
     // })
 }
 
-if (!gotTheLock) {
-    app.quit()
-} else {
+if (!gotTheLock) app.quit()
+else {
     app.on('second-instance', () => {
         if (win) {
             if (win.isMinimized()) win.restore()

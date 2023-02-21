@@ -3,8 +3,7 @@ import { reactive, watch, nextTick, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import FileList from '../components/FileList.vue';
 import Editor from '../components/Editor.vue';
-
-const ipcRenderer = window.electron.ipcRenderer;
+const { ipcRenderer } = window.electron;
 
 const router = useRouter();
 
@@ -53,6 +52,7 @@ const splitLineMouseMove = (e) => {
 };
 
 onMounted(() => {
+  ipcRenderer.send('app-loaded');
   const id = router.currentRoute.value.query || '';
   if (id.id) {
     editor.id = id;
@@ -84,7 +84,7 @@ watch(
       <Editor v-if="editor.state" ref="editorRef" :noteId="editor.id" @getNoteList="getNoteList" @addNote="addNote">
       </Editor>
       <div v-else class="editorEmpty">
-        <img src="/icon/logo.svg" style="height: 50px; opacity: 0.05; mix-blend-mode: difference" />
+        <img src="/icon/logo.svg" />
       </div>
     </div>
   </div>
@@ -124,6 +124,9 @@ watch(
 }
 
 .editorEmpty img {
+  height: 50px;
+  opacity: 0.05;
+  mix-blend-mode: difference;
   user-select: none;
   -webkit-user-drag: none
 }

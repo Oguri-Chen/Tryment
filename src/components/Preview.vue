@@ -2,6 +2,7 @@
 import { ref, reactive, onMounted, watch } from 'vue';
 import Vditor from 'vditor';
 import 'vditor/dist/index.css';
+const { ipcRenderer } = window.electron;
 
 const noteEditor = reactive({
     data: {
@@ -12,10 +13,7 @@ const noteEditor = reactive({
 });
 const preVidtor = ref('1');
 const preShow = ref(false)
-
 const props = defineProps(['previewId']);
-
-const ipcRenderer = window.electron.ipcRenderer;
 
 const GetNoteInfo = async () => {
     const res = await ipcRenderer.sendSync('getNote', props.previewId)

@@ -2,7 +2,7 @@
 import { reactive, onMounted, onUnmounted, ref } from 'vue';
 import Vditor from 'vditor';
 import 'vditor/dist/index.css';
-const ipcRenderer = window.electron.ipcRenderer;
+const { ipcRenderer } = window.electron;
 
 const props = defineProps(['noteId']);
 const emit = defineEmits(['getNoteList', 'addNote']);
@@ -31,7 +31,6 @@ const debounce = (fn, delay) => {
 const GetNoteInfo = async () => {
   const res = await ipcRenderer.sendSync('getNote', props.noteId.id)
   if (res) noteEditor.data = res
-
 };
 
 const SaveNote = async () => {
